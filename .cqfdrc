@@ -1,0 +1,6 @@
+[project]
+org='sfl'
+name='sfl/ffmpeg'
+
+[build]
+command='./build-ffmpeg.sh'
