@@ -23,16 +23,41 @@
 
 #include "imxvpuapi2/imxvpuapi2.h"
 #include "avcodec.h"
+#include "internal.h"
 
 typedef struct imxvpuapiEncContext {
+        AVCodecContext *avctx;
+
+        ImxVpuApiEncoder *encoder;
+
+        ImxDmaBufferAllocator *allocator;
+
+        ImxDmaBuffer *stream_buffer;
+
         ImxVpuApiEncGlobalInfo const *enc_global_info;
+
+        ImxVpuApiEncStreamInfo stream_info;
+
+        ImxDmaBuffer **fb_pool_dmabuffers;
+        size_t num_fb_pool_framebuffers;
+
+        ImxDmaBuffer *input_dmabuffer;
+
+        ImxVpuApiEncOpenParams open_params;
+
+        void *encoded_frame_buffer;
+        size_t encoded_frame_buffer_size;
+
+        ImxVpuApiCompressionFormat compression_format;
+
+        ImxVpuApiColorFormat color_format;
 } imxvpuapiEncContext;
 
-int ff_imxvpuapi_enc_init(AVCodecContext *avctx);
+int ff_imxvpuapi_enc_init(AVCodecContext *avctx, imxvpuapiEncContext *ctx);
 
-int ff_imxvpuapi_enc_frame(AVCodecContext *avctx, AVPacket *pkt,
-                           const AVFrame *frame, int *got_packet);
+int ff_imxvpuapi_enc_frame(AVCodecContext *avctx, imxvpuapiEncContext *ctx,
+                           AVPacket *pkt, const AVFrame *frame, int *got_packet);
 
-int ff_imxvpuapi_enc_close(AVCodecContext *avctx);
+int ff_imxvpuapi_enc_close(AVCodecContext *avctx, imxvpuapiEncContext *ctx);
 
 #endif /* AVCODEC_IMXVPUAPI_ENCODE_H */
