@@ -9,6 +9,7 @@ export MAKEFLAGS="-j$[$(nproc) + 1]"
 ./configure --extra-libs=-ldl \
         --enable-gpl --enable-libx264 \
         --disable-ffplay --disable-ffprobe \
-        --enable-small --disable-stripping --disable-debug
+        --enable-small --disable-stripping --disable-debug \
+        --enable-imxvpuapi
 
 make
