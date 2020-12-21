@@ -336,6 +336,7 @@ External library support:
   --disable-d3d11va        disable Microsoft Direct3D 11 video acceleration code [autodetect]
   --disable-dxva2          disable Microsoft DirectX 9 video acceleration code [autodetect]
   --disable-ffnvcodec      disable dynamically linked Nvidia code [autodetect]
+  --enable-imxvpuapi       enable imxvpuapi code [no]
   --enable-libdrm          enable DRM code (Linux) [no]
   --enable-libmfx          enable Intel MediaSDK (AKA Quick Sync Video) code via libmfx [no]
   --enable-libnpp          enable Nvidia Performance Primitives-based code [no]
@@ -1762,6 +1763,7 @@ EXTERNAL_LIBRARY_LIST="
     chromaprint
     gcrypt
     gnutls
+    imxvpuapi
     jni
     ladspa
     libaom
@@ -2388,6 +2390,7 @@ CONFIG_EXTRA="
     idctdsp
     iirfilter
     mdct15
+    imxvpuapi_encode
     intrax8
     iso_media
     ividsp
@@ -3075,6 +3078,8 @@ h264_amf_encoder_deps="amf"
 h264_crystalhd_decoder_select="crystalhd h264_mp4toannexb_bsf h264_parser"
 h264_cuvid_decoder_deps="cuvid"
 h264_cuvid_decoder_select="h264_mp4toannexb_bsf"
+h264_imxvpuapi_encoder_select="imxvpuapi_encode"
+h264_imxvpuapi_encoder_deps="imxvpuapi2"
 h264_mediacodec_decoder_deps="mediacodec"
 h264_mediacodec_decoder_select="h264_mp4toannexb_bsf h264_parser"
 h264_mf_encoder_deps="mediafoundation"
@@ -6684,6 +6689,8 @@ test_cpp <<EOF && enable uwp && d3d11va_extralibs="-ldxgi -ld3d11"
 #error no family set
 #endif
 EOF
+
+enabled imxvpuapi && require_pkg_config imxvpuapi2 "libimxvpuapi2 >= 1.0.0" "imxvpuapi2/imxvpuapi2.h" imx_vpu_api_enc_encode
 
 enabled libdrm &&
     check_pkg_config libdrm_getfb2 libdrm "xf86drmMode.h" drmModeGetFB2
