@@ -24,6 +24,9 @@
 
 int ff_imxvpuapi_enc_init(AVCodecContext *avctx)
 {
+        imxvpuapiEncContext *ctx = avctx->priv_data;
+
+        ctx->enc_global_info = imx_vpu_api_enc_get_global_info();
         return 0;
 }
 

@@ -25,6 +25,7 @@
 #include "avcodec.h"
 
 typedef struct imxvpuapiEncContext {
+        ImxVpuApiEncGlobalInfo const *enc_global_info;
 } imxvpuapiEncContext;
 
 int ff_imxvpuapi_enc_init(AVCodecContext *avctx);
