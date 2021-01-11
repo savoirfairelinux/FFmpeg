@@ -2391,6 +2391,7 @@ CONFIG_EXTRA="
     iirfilter
     mdct15
     imxvpuapi_encode
+    imxvpuapi_decode
     intrax8
     iso_media
     ividsp
@@ -3080,6 +3081,7 @@ h264_cuvid_decoder_deps="cuvid"
 h264_cuvid_decoder_select="h264_mp4toannexb_bsf"
 h264_imxvpuapi_encoder_select="imxvpuapi_encode"
 h264_imxvpuapi_encoder_deps="imxvpuapi2"
+h264_imxvpuapi_decoder_select="h264_mp4toannexb_bsf imxvpuapi_decode"
 h264_imxvpuapi_decoder_deps="imxvpuapi2"
 h264_mediacodec_decoder_deps="mediacodec"
 h264_mediacodec_decoder_select="h264_mp4toannexb_bsf h264_parser"

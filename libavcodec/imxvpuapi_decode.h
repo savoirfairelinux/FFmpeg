@@ -25,6 +25,32 @@
 #include "avcodec.h"
 #include "internal.h"
 
+typedef struct imxvpuapiDecContext {
+        AVCodecContext *avctx;
 
+        ImxVpuApiDecoder *decoder;
+
+        ImxDmaBufferAllocator *allocator;
+
+        ImxDmaBuffer *stream_buffer;
+
+        ImxVpuApiDecGlobalInfo const *dec_global_info;
+
+        ImxVpuApiDecStreamInfo stream_info;
+
+        ImxDmaBuffer **fb_pool_dmabuffers;
+        size_t num_fb_pool_framebuffers;
+
+        ImxDmaBuffer *output_dmabuffer;
+
+        ImxVpuApiCompressionFormat compression_format;
+} imxvpuapiDecContext;
+
+int ff_imxvpuapi_dec_init(AVCodecContext *avctx, imxvpuapiDecContext *ctx);
+
+int ff_imxvpuapi_dec_frame(AVCodecContext *avctx, imxvpuapiDecContext *ctx, void
+                           *data, int *got_frame, AVPacket *avpkt);
+
+int ff_imxvpuapi_dec_close(AVCodecContext *avctx, imxvpuapiDecContext *ctx);
 
 #endif /* AVCODEC_IMXVPUAPI_DECODE_H */

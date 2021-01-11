@@ -21,23 +21,34 @@
 #include "imxvpuapi_decode.h"
 
 typedef struct imxvpuapiDecH264Context {
-
+        AVClass *class;
+        imxvpuapiDecContext imxvpuapi;
 } imxvpuapiDecH264Context;
 
 static int imxvpuapi_h264_dec_init(AVCodecContext *avctx)
 {
-        return 0;
+        imxvpuapiDecH264Context *h264_ctx = avctx->priv_data;
+        imxvpuapiDecContext *ctx = &h264_ctx->imxvpuapi;
+
+        ctx->compression_format = IMX_VPU_API_COMPRESSION_FORMAT_H264;
+
+        return ff_imxvpuapi_dec_init(avctx, &h264_ctx->imxvpuapi);
 }
 
-static int imxvpuapi_h264_dec_frame(AVCodecContext *avctx, AVPacket *pkt,
-                                    const AVFrame *frame, int *got_packet)
+static int imxvpuapi_h264_dec_frame(AVCodecContext *avctx, void *data,
+                                    int *got_frame, AVPacket *avpkt)
 {
-        return 0;
+        imxvpuapiDecH264Context *h264_ctx = avctx->priv_data;
+
+        return ff_imxvpuapi_dec_frame(avctx, &h264_ctx->imxvpuapi, data,
+                                      got_frame, avpkt);
 }
 
 static int imxvpuapi_h264_dec_close(AVCodecContext *avctx)
 {
-        return 0;
+        imxvpuapiDecH264Context *h264_ctx = avctx->priv_data;
+
+        return ff_imxvpuapi_dec_close(avctx, &h264_ctx->imxvpuapi);
 }
 
 static const AVClass imxvpuapi_dec_h264_class = {
@@ -60,5 +71,6 @@ AVCodec ff_h264_imxvpuapi_decoder = {
         .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
         .pix_fmts       = (const enum AVPixelFormat[]){ AV_PIX_FMT_YUV420P,
                                                         AV_PIX_FMT_NONE },
+        .bsfs           = "h264_mp4toannexb",
         .wrapper_name   = "imxvpuapi",
 };

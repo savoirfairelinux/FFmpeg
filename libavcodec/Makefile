@@ -105,6 +105,7 @@ OBJS-$(CONFIG_HUFFYUVENCDSP)           += huffyuvencdsp.o
 OBJS-$(CONFIG_IDCTDSP)                 += idctdsp.o simple_idct.o jrevdct.o
 OBJS-$(CONFIG_IIRFILTER)               += iirfilter.o
 OBJS-$(CONFIG_IMXVPUAPI_ENCODE)        += imxvpuapi_encode.o
+OBJS-$(CONFIG_IMXVPUAPI_DECODE)        += imxvpuapi_decode.o
 OBJS-$(CONFIG_MDCT15)                  += mdct15.o
 OBJS-$(CONFIG_INTRAX8)                 += intrax8.o intrax8dsp.o msmpeg4data.o
 OBJS-$(CONFIG_IVIDSP)                  += ivi_dsp.o
