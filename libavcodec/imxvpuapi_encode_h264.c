@@ -71,9 +71,6 @@ AVCodec ff_h264_imxvpuapi_encoder = {
         .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
         .pix_fmts       = (const enum AVPixelFormat[]){ AV_PIX_FMT_YUV420P,
                                                         AV_PIX_FMT_YUV422P,
-                                                        AV_PIX_FMT_YUV444P,
-                                                        AV_PIX_FMT_YUV411P,
-                                                        AV_PIX_FMT_P010,
                                                         AV_PIX_FMT_NONE },
         .wrapper_name   = "imxvpuapi",
 };

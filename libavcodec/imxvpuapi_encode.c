@@ -29,12 +29,6 @@ static ImxVpuApiColorFormat convert_pix_fmt(enum AVPixelFormat pix_fmt)
                 return IMX_VPU_API_COLOR_FORMAT_FULLY_PLANAR_YUV420_8BIT;
         case AV_PIX_FMT_YUV422P:
                 return IMX_VPU_API_COLOR_FORMAT_FULLY_PLANAR_YUV422_HORIZONTAL_8BIT;
-        case AV_PIX_FMT_YUV444P:
-                return IMX_VPU_API_COLOR_FORMAT_FULLY_PLANAR_YUV444_8BIT;
-        case AV_PIX_FMT_YUV411P:
-                return IMX_VPU_API_COLOR_FORMAT_FULLY_PLANAR_YUV411_8BIT;
-        case AV_PIX_FMT_P010:
-                return IMX_VPU_API_COLOR_FORMAT_SEMI_PLANAR_P010_10BIT;
         };
         return -1;
 }
