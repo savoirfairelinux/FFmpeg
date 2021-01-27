@@ -51,6 +51,9 @@ typedef struct imxvpuapiEncContext {
         ImxVpuApiCompressionFormat compression_format;
 
         ImxVpuApiColorFormat color_format;
+
+        int uv_height;
+        int uv_width;
 } imxvpuapiEncContext;
 
 int ff_imxvpuapi_enc_init(AVCodecContext *avctx, imxvpuapiEncContext *ctx);

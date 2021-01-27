@@ -22,12 +22,17 @@
 
 #include "imxvpuapi_encode.h"
 
-static ImxVpuApiColorFormat convert_pix_fmt(enum AVPixelFormat pix_fmt)
+static ImxVpuApiColorFormat convert_pix_fmt(AVCodecContext *avctx,
+                                            imxvpuapiEncContext *ctx)
 {
-        switch(pix_fmt){
+        switch(avctx->pix_fmt){
         case AV_PIX_FMT_YUV420P:
+                ctx->uv_height = avctx->height / 2;
+                ctx->uv_width = avctx->width / 2;
                 return IMX_VPU_API_COLOR_FORMAT_FULLY_PLANAR_YUV420_8BIT;
         case AV_PIX_FMT_YUV422P:
+                ctx->uv_height = avctx->height / 2;
+                ctx->uv_width = avctx->width;
                 return IMX_VPU_API_COLOR_FORMAT_FULLY_PLANAR_YUV422_HORIZONTAL_8BIT;
         };
         return -1;
@@ -118,21 +123,24 @@ static int push_raw_input_frame(AVCodecContext *avctx, imxvpuapiEncContext *ctx,
         y_dest = mapped_virtual_address + fb_metrics->y_offset;
         u_dest = mapped_virtual_address + fb_metrics->u_offset;
         v_dest = mapped_virtual_address + fb_metrics->v_offset;
+
         for(y=0;y<frame->height;y++)
         {
                 memcpy(y_dest, frame->data[0] + y * frame->linesize[0],
                        frame->linesize[0]);
-                y_dest += frame->linesize[0];
+                y_dest += fb_metrics->y_stride;
         }
-        for(y=0;y<frame->height/2;y++)
+
+        for(y=0;y<ctx->uv_height;y++)
         {
-                memcpy(u_dest, frame->data[1] + y * frame->linesize[1],
-                       frame->linesize[1]);
-                u_dest += frame->linesize[2];
-                memcpy(v_dest, frame->data[2] + y * frame->linesize[2],
-                       frame->linesize[2]);
-                v_dest += frame->linesize[2];
+                memcpy(u_dest, frame->data[1] + y * ctx->uv_width,
+                       ctx->uv_width);
+                u_dest += fb_metrics->uv_stride;
+                memcpy(v_dest, frame->data[2] + y * ctx->uv_width,
+                       ctx->uv_width);
+                v_dest += fb_metrics->uv_stride;
         }
+
         imx_dma_buffer_unmap(ctx->input_dmabuffer);
 
         if ((enc_ret = imx_vpu_api_enc_push_raw_frame(ctx->encoder,
@@ -246,7 +254,7 @@ int ff_imxvpuapi_enc_init(AVCodecContext *avctx, imxvpuapiEncContext *ctx)
         ImxVpuApiEncReturnCodes enc_ret;
         int err = 0;
 
-        ctx->color_format = convert_pix_fmt(avctx->pix_fmt);
+        ctx->color_format = convert_pix_fmt(avctx, ctx);
         if(ctx->color_format == -1){
                 av_log(avctx, AV_LOG_ERROR, "pixel format not supported\n");
                 return -1;
