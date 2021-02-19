@@ -24,6 +24,7 @@
 #include "imxvpuapi2/imxvpuapi2.h"
 #include "avcodec.h"
 #include "internal.h"
+#include <stdbool.h>
 
 typedef struct imxvpuapiDecContext {
         AVCodecContext *avctx;
@@ -44,6 +45,10 @@ typedef struct imxvpuapiDecContext {
         ImxDmaBuffer *output_dmabuffer;
 
         ImxVpuApiCompressionFormat compression_format;
+        int uv_height;
+        int uv_width;
+        int uv_stride;
+        bool first_frame;
 } imxvpuapiDecContext;
 
 int ff_imxvpuapi_dec_init(AVCodecContext *avctx, imxvpuapiDecContext *ctx);

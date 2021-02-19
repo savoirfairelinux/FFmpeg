@@ -20,6 +20,31 @@
 
 #include "imxvpuapi_decode.h"
 
+static enum AVPixelFormat convert_pix_fmt(AVCodecContext *avctx,
+                                          imxvpuapiDecContext *ctx,
+                                          ImxVpuApiFramebufferMetrics const
+                                          *fb_metrics)
+{
+        switch(ctx->stream_info.color_format){
+        case IMX_VPU_API_COLOR_FORMAT_SEMI_PLANAR_YUV420_8BIT:
+                ctx->uv_height = avctx->height;
+                ctx->uv_width = avctx->width / 2;
+                ctx->uv_stride = fb_metrics->uv_stride / 2;
+                return AV_PIX_FMT_NV12;
+        case IMX_VPU_API_COLOR_FORMAT_FULLY_PLANAR_YUV420_8BIT:
+                ctx->uv_height = avctx->height / 2;
+                ctx->uv_width = avctx->width / 2;
+                ctx->uv_stride = fb_metrics->uv_stride;
+                return AV_PIX_FMT_YUV420P;
+        case IMX_VPU_API_COLOR_FORMAT_FULLY_PLANAR_YUV422_HORIZONTAL_8BIT:
+                ctx->uv_height = avctx->height / 2;
+                ctx->uv_width = avctx->width;
+                ctx->uv_stride = fb_metrics->uv_stride * 2;
+                return AV_PIX_FMT_YUV422P;
+        };
+        return -1;
+}
+
 static int allocate_output_framebuffer(AVCodecContext *avctx,
                                        imxvpuapiDecContext *ctx)
 {
@@ -204,8 +229,8 @@ static int decoded_frame_available(AVCodecContext *avctx, imxvpuapiDecContext
                                    *ctx, ImxVpuApiRawFrame decoded_frame,
                                    AVFrame *frame)
 {
+        uint8_t *virtual_address, *y_src, *uv_src, *u_src, *v_src;
         ImxVpuApiFramebufferMetrics const *fb_metrics;
-        uint8_t *virtual_address, *y_src, *uv_src;
         ImxVpuApiDecReturnCodes dec_ret;
         int err = 0, y;
 
@@ -218,27 +243,46 @@ static int decoded_frame_available(AVCodecContext *avctx, imxvpuapiDecContext
                 return 1;
         }
 
-        virtual_address = imx_dma_buffer_map(decoded_frame.fb_dma_buffer,
-                                             IMX_DMA_BUFFER_MAPPING_FLAG_READ,
-                                             &err);
-
-        fb_metrics = &(ctx->stream_info.decoded_frame_framebuffer_metrics);
-        y_src = virtual_address + fb_metrics->y_offset;
-        uv_src = virtual_address + fb_metrics->u_offset;
-
-        for(y = 0; y < avctx->height; y++)
+        if (!ctx->first_frame || (avctx->height != 0 && avctx->width != 0))
         {
-                memcpy(frame->data[0] + y * avctx->width, y_src, avctx->width);
-                y_src += fb_metrics->y_stride;
-        }
-        for(y = 0; y < avctx->height; y++)
-        {
-                memcpy(frame->data[1] + y * avctx->width / 2, uv_src,
-                       avctx->width / 2);
-                uv_src += fb_metrics->uv_stride / 2;
-        }
-        imx_dma_buffer_unmap(decoded_frame.fb_dma_buffer);
+                virtual_address = imx_dma_buffer_map(decoded_frame.fb_dma_buffer,
+                                                     IMX_DMA_BUFFER_MAPPING_FLAG_READ,
+                                                     &err);
 
+                fb_metrics = &(ctx->stream_info.decoded_frame_framebuffer_metrics);
+                y_src = virtual_address + fb_metrics->y_offset;
+
+                for(y = 0; y < avctx->height; y++)
+                {
+                        memcpy(frame->data[0] + y * avctx->width, y_src,
+                               avctx->width);
+                        y_src += fb_metrics->y_stride;
+                }
+                if(avctx->codec->id != AV_CODEC_ID_MJPEG)
+                {
+                        uv_src = virtual_address + fb_metrics->u_offset;
+                        for(y = 0; y < ctx->uv_height; y++)
+                        {
+                                memcpy(frame->data[1] + y * ctx->uv_width,
+                                       uv_src, ctx->uv_width);
+                                uv_src += ctx->uv_stride;
+                        }
+                }else {
+                        u_src = virtual_address + fb_metrics->u_offset;
+                        v_src = virtual_address + fb_metrics->v_offset;
+                        for(y = 0; y < ctx->uv_height; y++)
+                        {
+                                memcpy(frame->data[1] + y * ctx->uv_width,
+                                       u_src, ctx->uv_width);
+                                u_src += ctx->uv_stride;
+                                memcpy(frame->data[2] + y * ctx->uv_width,
+                                       v_src, ctx->uv_width);
+                                v_src += ctx->uv_stride;
+                        }
+                }
+                imx_dma_buffer_unmap(decoded_frame.fb_dma_buffer);
+
+        }
         imx_vpu_api_dec_return_framebuffer_to_decoder(ctx->decoder,
                                                       decoded_frame.fb_dma_buffer);
         return 0;
@@ -335,11 +379,7 @@ int ff_imxvpuapi_dec_init(AVCodecContext *avctx, imxvpuapiDecContext *ctx)
         ImxVpuApiDecReturnCodes dec_ret;
         int err = 0;
 
-        if (avctx->pix_fmt != AV_PIX_FMT_YUV420P)
-        {
-                av_log(avctx, AV_LOG_ERROR, "Unsupported pixel format\n");
-                return -1;
-        }
+        ctx->first_frame = true;
 
         ctx->dec_global_info = imx_vpu_api_dec_get_global_info();
 
@@ -353,11 +393,16 @@ int ff_imxvpuapi_dec_init(AVCodecContext *avctx, imxvpuapiDecContext *ctx)
 
         memset(&open_params, 0, sizeof(open_params));
         open_params.compression_format = ctx->compression_format;
-        open_params.flags =
-                IMX_VPU_API_DEC_OPEN_PARAMS_FLAG_ENABLE_FRAME_REORDERING
-                | IMX_VPU_API_DEC_OPEN_PARAMS_FLAG_USE_SEMI_PLANAR_COLOR_FORMAT;
-        open_params.frame_width = avctx->width;
-        open_params.frame_height = avctx->height;
+
+        if(avctx->codec->id != AV_CODEC_ID_MJPEG)
+        {
+                open_params.flags =
+                        IMX_VPU_API_DEC_OPEN_PARAMS_FLAG_ENABLE_FRAME_REORDERING
+                        | IMX_VPU_API_DEC_OPEN_PARAMS_FLAG_USE_SEMI_PLANAR_COLOR_FORMAT;
+        }else{
+                open_params.flags =
+                        IMX_VPU_API_DEC_OPEN_PARAMS_FLAG_ENABLE_FRAME_REORDERING;
+        }
 
         ctx->stream_buffer = imx_dma_buffer_allocate(ctx->allocator,
                                                      ctx->dec_global_info->min_required_stream_buffer_size,
@@ -377,15 +422,20 @@ int ff_imxvpuapi_dec_init(AVCodecContext *avctx, imxvpuapiDecContext *ctx)
 int ff_imxvpuapi_dec_frame(AVCodecContext *avctx, imxvpuapiDecContext *ctx, void
                            *data, int *got_frame, AVPacket *avpkt)
 {
+        ImxVpuApiFramebufferMetrics const *fb_metrics;
         AVFrame *frame = data;
         int ret;
 
-        //There is only one output format available
-        avctx->pix_fmt = AV_PIX_FMT_NV12;
+        fb_metrics = &(ctx->stream_info.decoded_frame_framebuffer_metrics);
+        avctx->width = fb_metrics->actual_frame_width;
+        avctx->height = fb_metrics->actual_frame_height;
+        avctx->pix_fmt = convert_pix_fmt(avctx, ctx, fb_metrics);
 
-        ret = ff_get_buffer(avctx, frame, 0);
-        if (ret < 0)
-                return -1;
+        if (!ctx->first_frame || (avctx->height != 0 && avctx->width != 0)){
+                ret = ff_get_buffer(avctx, frame, 0);
+                if (ret < 0)
+                        return -1;
+        }
 
         if (avpkt->data)
         {
@@ -395,8 +445,10 @@ int ff_imxvpuapi_dec_frame(AVCodecContext *avctx, imxvpuapiDecContext *ctx, void
                 if (decode_frame(avctx, ctx, avpkt, frame))
                         return -1;
 
-                *got_frame = 1;
+                if (!ctx->first_frame || (avctx->height != 0 && avctx->width != 0))
+                        *got_frame = 1;
         }
+        ctx->first_frame = false;
         return 0;
 }
 

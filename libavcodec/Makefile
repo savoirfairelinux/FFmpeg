@@ -376,6 +376,7 @@ OBJS-$(CONFIG_H264_AMF_ENCODER)        += amfenc_h264.o
 OBJS-$(CONFIG_H264_CUVID_DECODER)      += cuviddec.o
 OBJS-$(CONFIG_H264_IMXVPUAPI_ENCODER)  += imxvpuapi_encode_h264.o
 OBJS-$(CONFIG_H264_IMXVPUAPI_DECODER)  += imxvpuapi_decode_h264.o
+OBJS-$(CONFIG_MJPEG_IMXVPUAPI_DECODER) += imxvpuapi_decode_mjpeg.o
 OBJS-$(CONFIG_H264_MEDIACODEC_DECODER) += mediacodecdec.o
 OBJS-$(CONFIG_H264_MF_ENCODER)         += mfenc.o mf_utils.o
 OBJS-$(CONFIG_H264_MMAL_DECODER)       += mmaldec.o
